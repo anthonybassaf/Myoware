@@ -1,5 +1,8 @@
 import random
 import tkinter
+import serial
+import time
+
 ###############################################
 #MAIN MENU WINDOW
 
@@ -18,7 +21,7 @@ def menug():
     print("Game initialised.\n")
 
 
-    title=tkinter.Label(menu, text="Simple Fight Game", font=("Courier", 28, "bold"), pady=20,bg="#7F0404", fg="white")
+    title=tkinter.Label(menu, text="Fight Game - Menu", font=("Courier", 28, "bold"), pady=20,bg="#7F0404", fg="white")
     startt=tkinter.Button(menu, text="START", command=start, pady=20, width=100)
     mexit=tkinter.Button(menu, text="Exit", command=exit)
 
@@ -38,9 +41,9 @@ def gameplay():
 
 
     global basehp
-    basehp = 125
+    basehp = 150
     global health
-    health = 125
+    health = 150
     global cclass
     global tdmgp
     global tdmg
@@ -50,7 +53,7 @@ def gameplay():
     pmodifier = 1.3
 
     global ehealth
-    ehealth=int(round(health*1.25))
+    ehealth=int(health*1.2)
     global emodifier
     emodifier=1.3
     global ebasehp
@@ -85,16 +88,17 @@ def gameplay():
             global health
             missche=random.randint(0,13)
             echance=random.randint(0,13)
-            if echance>=5:
+            if echance>=5 and echance<10:
                 if missche>=11:
                     print("Enemy attack missed!")
                     enemymove.configure(text="Enemy attack missed")
                 else:
                     global ehealth
-                    dmgdealt=int(round(random.randint(10,20)*emodifier))
+                    dmgdealt=int(random.randint(10,20)*emodifier)
                     health-=dmgdealt
+                    print("Damage dealt to Player: "+str(dmgdealt))
                     print("Player health is now: "+str(health))
-                    healthl.configure(text="Health: "+str(int(round(health)))+"/"+str(basehp))
+                    healthl.configure(text="Health: "+str(int(health))+"/"+str(basehp))
                     enemymove.configure(text="Damage dealt to you: " + (str(dmgdealt)))
                     
             elif echance>=10:
@@ -103,42 +107,57 @@ def gameplay():
                     enemymove.configure(text="Enemy attack missed")
                 else:
                     global ehealth
-                    dmgdealt=int(round(random.randint(14,26)*emodifier))
+                    dmgdealt=int(random.randint(14,26)*emodifier)
                     health-=dmgdealt
+                    print("Damage dealt to Player: "+str(dmgdealt))
                     print("Player health is now: "+str(health))
                     healthl.configure(text="Health: "+str(health)+"/"+str(basehp))
                     enemymove.configure(text="Damage dealt to you: "+(str(dmgdealt)))
             
             elif echance<=4:
-                global tdmg
-                chance=1
-                while chance<7:
-                    dmgdealt=random.randint(2,7)*emodifier
-                    tdmg+=int(round(dmgdealt))
-                    health-=dmgdealt
-                    chance=int(round(random.randint(0,11)))
-                    print("Player health is now: "+str(health))
-                    healthl.configure(text="Health: "+str(int(round(health)))+"/"+str(basehp))
+                global ehealth
+                dmgdealt=int(random.randint(2,7)*emodifier)
+                health-=dmgdealt
+                print("Damage dealt to Player: "+str(dmgdealt))
+                print("Player health is now: "+str(health))
+                healthl.configure(text="Health: "+str(int(health))+"/"+str(basehp))
                 enemymove.configure(text="Damage dealt to you: "+(str(dmgdealt)))           
-            tdmg=0
 
     def attack():
         global pwin
+        ser = serial.Serial('COM3', 9600, timeout = 1)
+        val = []
         if pwin!=1:
             global ehealth
             missch=random.randint(0,13)
             if missch>=11:
-                print("Player attack missed!")
+                print("\nPlayer attack missed!")
             else:
                 global dmgdealtp
-                dmgdealtp=int(round(random.randint(14,26)*pmodifier))
+                dmgdealtp = 0
+                while dmgdealtp == 0:
+                    arduinoData = ser.readline().decode('ascii')
+                    arduinoData = arduinoData.replace("\r", "")
+                    arduinoData = arduinoData.replace("\n", "")
+                    print(arduinoData)
+                    if arduinoData != '' and int(float(arduinoData)) >= 140 and int(float(arduinoData)) <= 220:
+                        val.append(float(arduinoData))
+                        dmgdealtp = int(max(val)/10)
+                    else:
+                        val.clear()
                 ehealth-=dmgdealtp
-                print("Enemy health is now: "+str(ehealth))
+                print(max(val))
+                print("\nDamage dealt to Enemy: "+str(dmgdealtp))
+                print("Enemy health is now: "+str(ehealth)+"\n")
                 ehealthl.configure(text="Health: "+str(int(round(ehealth)))+"/"+str(ebasehp))
                 playerddealt.configure(text="Damage dealt to enemy: "+str(dmgdealtp))
             pwin()
             echance()
             ewin()
+
+    
+
+
 
 		
     player=tkinter.Label(window, text="Player", font=("Courier", 24, "bold"))
@@ -164,4 +183,3 @@ def gameplay():
 
 #Initialises the game
 menug()
-
